@@ -19,7 +19,7 @@ func BytesToWords(bytes []byte) []uint16 {
     words := make([]uint16, len(bytes) / 2)
 
     for i := range words {
-        w := binary.BigEndian.Uint16(bytes[2 * i : 2 * i + 2])
+        w := binary.LittleEndian.Uint16(bytes[2 * i : 2 * i + 2])
         words[i] = w
     }
 
