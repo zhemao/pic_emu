@@ -38,9 +38,18 @@ func executeInstruction0(instr uint16, state *emuState) error {
                 intcon |= 1 << INTCON_GIE
                 setRegValue(state, REG_INTCON, intcon)
             }
-        } else if (f & 0x1f) != 0 {
+            return nil
+        }
+        if f == 0x63 {
+            state.pc++
+            return errors.New("entering standby mode\n")
+        }
+        if (f & 0x1f) != 0 {
+            // not NOP
             return errors.New("invalid instruction\n")
         }
+
+        state.pc++
         return nil
     }
 
