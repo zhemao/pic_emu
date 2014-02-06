@@ -29,38 +29,7 @@ func BytesToWords(bytes []byte) []uint16 {
     return words
 }
 
-type emuState struct {
-    code_rom []uint16
-    data_ram []byte
-    accum byte
-    breakpoints []uint16
-    pc uint16
-    bank uint8
-    stack *callStack
-}
-
 type command func(string, *emuState) error
-
-func (state *emuState) reset() {
-    state.accum = 0
-    state.breakpoints = state.breakpoints[0:0]
-    state.pc = 0
-    state.bank = 0
-    state.stack.clear()
-
-    for i, _ := range state.data_ram {
-        state.data_ram[i] = 0
-    }
-}
-
-func atBreakpoint(state *emuState) bool {
-    for _, bp := range state.breakpoints {
-        if state.pc == bp {
-            return true
-        }
-    }
-    return false
-}
 
 func setBreakpoint(arg string, state *emuState) error {
     addr, err := strconv.ParseUint(arg, 16, 16)
@@ -76,7 +45,7 @@ func stepForward(arg string, state *emuState) error {
 }
 
 func runCode(arg string, state *emuState) error {
-    for !atBreakpoint(state) {
+    for !state.atBreakpoint() {
         err := stepForward("", state)
         if err != nil {
             return err
