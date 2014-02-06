@@ -10,8 +10,12 @@ title "add test"
   org 05h
 
 main
-  clrw
-  nop
+  movlw 7 ; w = 7
+  addlw 5 ; w = 12
+  movwf 21h
+  movlw 5 ; w = 5
+  addwf 21h, w ; w = 17
+  sleep
 
 isrService
   goto isrService
