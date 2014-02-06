@@ -134,7 +134,40 @@ func executeInstruction2(instr uint16, state *emuState) error {
     return nil
 }
 func executeInstruction3(instr uint16, state *emuState) error {
-    return errors.New("not supported yet")
+    opcode := (instr >> 8) & 0xf
+    k := int16(instr & 0xff)
+
+    accumVal := int16(state.accum)
+    var newVal int16
+
+    if opcode & 0xc == 0 {
+        // MOVLW
+        newVal = k
+    } else if opcode & 0xc == 0x4 {
+        // RETLW
+        state.accum = byte(k)
+        newpc, err := state.stack.pop()
+        if err != nil {
+            return err
+        }
+        state.pc = newpc
+        return nil
+    } else if opcode & 0xe == 0xc {
+        newVal = k - accumVal
+    } else if opcode & 0xe == 0xe {
+        newVal = k + accumVal
+    } else {
+        switch opcode {
+            case 0x8: newVal = k | accumVal
+            case 0x9: newVal = k & accumVal
+            case 0xa: newVal = k ^ accumVal
+        }
+    }
+
+    state.accum = byte(newVal)
+    state.pc++
+
+    return nil
 }
 
 func executeInstruction(instr uint16, state *emuState) error {
