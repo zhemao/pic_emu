@@ -6,6 +6,7 @@ import (
     "bufio"
     "os"
     "fmt"
+    "errors"
     "strings"
     "strconv"
     "encoding/binary"
@@ -14,6 +15,8 @@ import (
 const ROM_SIZE = 4096
 const NUM_RAM_BANKS = 4
 const RAM_BANK_SIZE = 128
+const RAM_BANK_SHIFT = 7
+const STACK_SIZE = 8
 
 func BytesToWords(bytes []byte) []uint16 {
     words := make([]uint16, len(bytes) / 2)
@@ -33,9 +36,22 @@ type emuState struct {
     breakpoints []uint16
     pc uint16
     bank uint8
+    stack *callStack
 }
 
-type command func(string, *emuState)
+type command func(string, *emuState) error
+
+func (state *emuState) reset() {
+    state.accum = 0
+    state.breakpoints = state.breakpoints[0:0]
+    state.pc = 0
+    state.bank = 0
+    state.stack.clear()
+
+    for i, _ := range state.data_ram {
+        state.data_ram[i] = 0
+    }
+}
 
 func atBreakpoint(state *emuState) bool {
     for _, bp := range state.breakpoints {
@@ -46,25 +62,30 @@ func atBreakpoint(state *emuState) bool {
     return false
 }
 
-func setBreakpoint(arg string, state *emuState) {
+func setBreakpoint(arg string, state *emuState) error {
     addr, err := strconv.ParseUint(arg, 16, 16)
     if err != nil {
-        panic(err)
+        return err
     }
     state.breakpoints = append(state.breakpoints, uint16(addr))
+    return nil
 }
 
-func stepForward(arg string, state *emuState) {
-    executeInstruction(state.code_rom[state.pc], state)
+func stepForward(arg string, state *emuState) error {
+    return executeInstruction(state.code_rom[state.pc], state)
 }
 
-func runCode(arg string, state *emuState) {
+func runCode(arg string, state *emuState) error {
     for !atBreakpoint(state) {
-        stepForward("", state)
+        err := stepForward("", state)
+        if err != nil {
+            return err
+        }
     }
+    return nil
 }
 
-func printRegister(regName string, state *emuState) {
+func printRegister(regName string, state *emuState) error {
     var value int16
 
     switch regName {
@@ -73,14 +94,15 @@ func printRegister(regName string, state *emuState) {
         default : {
             regAddr, err := strconv.ParseUint(regName, 16, 8)
             if err != nil {
-                fmt.Printf("Unrecognized register %s\n", regName)
-                return
+                return errors.New(
+                    fmt.Sprintf("Unrecognized register %s\n", regName))
             }
             value = int16(getRegValue(state, uint16(regAddr)))
         }
     }
 
     fmt.Println(value)
+    return nil
 }
 
 func main() {
@@ -111,6 +133,7 @@ func main() {
     state.breakpoints = make([]uint16, 0)
     state.pc = 0
     state.bank = 0
+    state.stack = newStack(STACK_SIZE)
 
     commands := map[string]command {
         "r" : runCode,
@@ -141,7 +164,14 @@ func main() {
             arg = parts[1]
         }
 
-        operation(arg, state)
+        err = operation(arg, state)
+        if err != nil {
+            if arg == "r" || arg == "b" {
+                fmt.Printf("Error on instruction %u\n", state.pc)
+            }
+            fmt.Println(err)
+            state.reset()
+        }
 
         line, err = linenoise.Line("pic> ")
     }
