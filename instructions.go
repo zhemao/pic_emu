@@ -1,6 +1,9 @@
 package main
 
-import "errors"
+import (
+    "errors"
+    "fmt"
+)
 
 func decodeDF(instr uint16) (uint16, uint16) {
     d := (instr >> 7) & 1
@@ -26,7 +29,10 @@ func executeInstruction0(instr uint16, state *emuState) error {
         // MOVWF
         if d == 1 {
             setRegValue(state, f, byte(accumVal))
-        } else if (f & 0xfe) == 8 {
+            state.pc++
+            return nil
+        }
+        if (f & 0xfe) == 8 {
             // RETURN or RETFIE
             newInstr, err := state.stack.pop()
             if err != nil {
@@ -42,14 +48,14 @@ func executeInstruction0(instr uint16, state *emuState) error {
         }
         if f == 0x63 {
             state.pc++
-            return errors.New("entering standby mode\n")
+            return errors.New("entering standby mode")
         }
         if (f & 0x1f) != 0 {
             // not NOP
-            return errors.New("invalid instruction\n")
+            errmsg := fmt.Sprintf("invalid instruction %x", instr)
+            return errors.New(errmsg)
         }
 
-        state.pc++
         return nil
     }
 
@@ -122,6 +128,7 @@ func executeInstruction0(instr uint16, state *emuState) error {
 func executeInstruction1(instr uint16, state *emuState) error {
     return errors.New("not supported yet")
 }
+
 func executeInstruction2(instr uint16, state *emuState) error {
     call := ((instr >> 11) & 0x1) == 1
     addr := instr & 0x7ff
@@ -133,6 +140,7 @@ func executeInstruction2(instr uint16, state *emuState) error {
 
     return nil
 }
+
 func executeInstruction3(instr uint16, state *emuState) error {
     opcode := (instr >> 8) & 0xf
     k := int16(instr & 0xff)
@@ -180,5 +188,6 @@ func executeInstruction(instr uint16, state *emuState) error {
         case 3: return executeInstruction3(instr, state)
     }
 
-    return errors.New("invalid instruction")
+    errmsg := fmt.Sprintf("invalid instruction class %d", opcodeClass)
+    return errors.New(errmsg)
 }
