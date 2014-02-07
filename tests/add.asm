@@ -15,7 +15,6 @@ main
   movwf 21h
   movlw 5 ; w = 5
   addwf 21h, w ; w = 17
-  sleep
 
 isrService
   goto isrService
