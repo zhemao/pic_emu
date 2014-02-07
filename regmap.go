@@ -58,6 +58,7 @@ const (
     STATUS_C = 0
     STATUS_DC = 1
     STATUS_Z = 2
+    STATUS_RP = 5
 )
 
 const (
