@@ -24,6 +24,7 @@ func executeInstruction0(instr uint16, state *emuState) error {
     status := getRegValue(state, REG_STATUS)
 
     c := byte((status >> STATUS_C) & 0x1)
+    var dc byte
 
     if opcode == 0 {
         // MOVWF
@@ -63,12 +64,14 @@ func executeInstruction0(instr uint16, state *emuState) error {
         case 0x1: newVal = 0 // CLRF or CLRW
         case 0x2: newVal = regVal - accumVal // SUBWF
                   c = byte(((newVal ^ regVal ^ -accumVal) >> 8) | 0x1)
+                  dc = byte(((newVal ^ regVal ^ -accumVal) >> 4) & 0x1)
         case 0x3: newVal = regVal - 1 // DECF
         case 0x4: newVal = regVal | accumVal // IORWF
         case 0x5: newVal = regVal & accumVal // ANDWF
         case 0x6: newVal = regVal ^ accumVal // XORWF
         case 0x7: newVal = regVal + accumVal // ADDWF
                   c = byte(((newVal ^ regVal ^ accumVal) >> 8) | 0x1)
+                  dc = byte(((newVal ^ regVal ^ accumVal) >> 4) & 0x1)
         case 0x8: newVal = regVal // MOVF
         case 0x9: newVal = ^regVal // COMF
         case 0xa: newVal = regVal + 1 // INCF
@@ -87,8 +90,6 @@ func executeInstruction0(instr uint16, state *emuState) error {
     } else {
         z = 0
     }
-
-    dc := byte(((newVal ^ regVal ^ accumVal) >> 4) & 0x1)
 
     if (d == 1) {
         setRegValue(state, f, byte(newVal))
@@ -126,7 +127,33 @@ func executeInstruction0(instr uint16, state *emuState) error {
 
 
 func executeInstruction1(instr uint16, state *emuState) error {
-    return errors.New("not supported yet")
+    opcode := (instr >> 10) & 0x3
+    b := (instr >> 7) & 0x7
+    f := instr & 0x7f
+
+    regVal := getRegValue(state, f)
+
+    if (opcode < 2) {
+        if (opcode == 0) {
+            // BCF
+            regVal &= ^(1 << b)
+        } else {
+            // BSF
+            regVal |= (1 << b)
+        }
+        setRegValue(state, f, regVal)
+        state.pc++
+    } else {
+        bitset := (regVal & (1 << b) != 0)
+        // skip if BTFSC and clear or BTFSS and set
+        if (opcode == 2 && !bitset || opcode == 3 && bitset) {
+            state.pc += 2
+        } else {
+            state.pc++
+        }
+    }
+
+    return nil
 }
 
 func executeInstruction2(instr uint16, state *emuState) error {
@@ -148,6 +175,12 @@ func executeInstruction3(instr uint16, state *emuState) error {
     accumVal := int16(state.accum)
     var newVal int16
 
+    arithInstr := false
+    zeroInstr := false
+    var carries int16
+
+    status := getRegValue(state, REG_STATUS)
+
     if opcode & 0xc == 0 {
         // MOVLW
         newVal = k
@@ -161,15 +194,39 @@ func executeInstruction3(instr uint16, state *emuState) error {
         state.pc = newpc
         return nil
     } else if opcode & 0xe == 0xc {
+        // SUBLW
+        arithInstr = true
+        zeroInstr = true
         newVal = k - accumVal
+        carries = newVal ^ k ^ -accumVal
     } else if opcode & 0xe == 0xe {
+        // ADDLW
+        arithInstr = true
+        zeroInstr = true
         newVal = k + accumVal
+        carries = newVal ^ k ^ accumVal
     } else {
+        zeroInstr = true
         switch opcode {
             case 0x8: newVal = k | accumVal
             case 0x9: newVal = k & accumVal
             case 0xa: newVal = k ^ accumVal
         }
+    }
+
+    if arithInstr {
+        if carries & 0x100 != 0 {
+            status |= (1 << STATUS_C)
+        }
+        if carries & 0x10 != 0 {
+            status |= (1 << STATUS_DC)
+        }
+    }
+    if zeroInstr {
+        if newVal == 0 {
+            status |= (1 << STATUS_Z)
+        }
+        setRegValue(state, REG_STATUS, status)
     }
 
     state.accum = byte(newVal)
