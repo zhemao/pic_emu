@@ -41,10 +41,19 @@ func setBreakpoint(arg string, state *emuState) error {
 }
 
 func stepForward(arg string, state *emuState) error {
+    if !state.running {
+        return errors.New("program isn't running\n")
+    }
     return executeInstruction(state.code_rom[state.pc], state)
 }
 
-func runCode(arg string, state *emuState) error {
+func startRunning(arg string, state *emuState) error {
+    state.reset()
+    state.running = true
+    return continueRunning(arg, state)
+}
+
+func continueRunning(arg string, state *emuState) error {
     for !state.atBreakpoint() {
         err := stepForward("", state)
         if err != nil {
@@ -102,10 +111,12 @@ func main() {
     state.breakpoints = make([]uint16, 0)
     state.pc = 0
     state.bank = 0
+    state.running = false
     state.stack = newStack(STACK_SIZE)
 
     commands := map[string]command {
-        "r" : runCode,
+        "r" : startRunning,
+        "c" : continueRunning,
         "b" : setBreakpoint,
         "n" : stepForward,
         "p" : printRegister,
@@ -135,11 +146,11 @@ func main() {
 
         err = operation(arg, state)
         if err != nil {
-            if arg == "r" || arg == "b" {
-                fmt.Printf("Error on instruction %u\n", state.pc)
+            if state.running {
+                fmt.Printf("Error on instruction 0x%x\n", state.pc)
             }
+            state.running = false
             fmt.Println(err)
-            state.reset()
         }
 
         line, err = linenoise.Line("pic> ")

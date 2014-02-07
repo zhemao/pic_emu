@@ -8,6 +8,7 @@ type emuState struct {
     pc uint16
     bank uint8
     stack *callStack
+    running bool
 }
 
 func (state *emuState) atBreakpoint() bool {
@@ -24,11 +25,10 @@ func (state *emuState) reset() {
     state.breakpoints = state.breakpoints[0:0]
     state.pc = 0
     state.bank = 0
+    state.running = false
     state.stack.clear()
 
     for i, _ := range state.data_ram {
         state.data_ram[i] = 0
     }
 }
-
-
