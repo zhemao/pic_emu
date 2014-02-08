@@ -22,7 +22,6 @@ func (state *emuState) atBreakpoint() bool {
 
 func (state *emuState) reset() {
     state.accum = 0
-    state.breakpoints = state.breakpoints[0:0]
     state.pc = 0
     state.bank = 0
     state.running = false
