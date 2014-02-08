@@ -24,7 +24,7 @@ func executeInstruction0(instr uint16, state *emuState) error {
     status := getRegValue(state, REG_STATUS)
 
     c := byte((status >> STATUS_C) & 0x1)
-    var dc byte
+    var carries int16
 
     if opcode == 0 {
         // MOVWF
@@ -63,32 +63,23 @@ func executeInstruction0(instr uint16, state *emuState) error {
     switch opcode {
         case 0x1: newVal = 0 // CLRF or CLRW
         case 0x2: newVal = regVal - accumVal // SUBWF
-                  c = byte(((newVal ^ regVal ^ -accumVal) >> 8) | 0x1)
-                  dc = byte(((newVal ^ regVal ^ -accumVal) >> 4) & 0x1)
+                  carries = newVal ^ regVal ^ -accumVal
         case 0x3: newVal = regVal - 1 // DECF
         case 0x4: newVal = regVal | accumVal // IORWF
         case 0x5: newVal = regVal & accumVal // ANDWF
         case 0x6: newVal = regVal ^ accumVal // XORWF
         case 0x7: newVal = regVal + accumVal // ADDWF
-                  c = byte(((newVal ^ regVal ^ accumVal) >> 8) | 0x1)
-                  dc = byte(((newVal ^ regVal ^ accumVal) >> 4) & 0x1)
+                  carries = newVal ^ regVal ^ accumVal
         case 0x8: newVal = regVal // MOVF
         case 0x9: newVal = ^regVal // COMF
         case 0xa: newVal = regVal + 1 // INCF
         case 0xb: newVal = regVal - 1 // DECFSZ
         case 0xc: newVal = ((regVal << 1) | int16(c)) & 0xff
-                  c = byte(regVal | 0x1) // RLF
+                  carries = regVal | 0x1 // RLF
         case 0xd: newVal = ((regVal >> 1) | int16(c << 7)) & 0xff
-                  c = byte((regVal >> 7) | 0x1) // RRF
+                  carries = (regVal >> 7) | 0x1 // RRF
         case 0xe: newVal = ((regVal >> 4) & 0x7) | ((regVal & 0x7) << 4) // SWAPF
         case 0xf: newVal = regVal + 1 // INCFSZ
-    }
-
-    var z byte
-    if (newVal == 0) {
-        z = 1
-    } else {
-        z = 0
     }
 
     if (d == 1) {
@@ -103,20 +94,37 @@ func executeInstruction0(instr uint16, state *emuState) error {
     zeroAffectInstr := (opcode != 0x0 && !skipInstr && opcode != 0xe)
 
     if (addsubInstr) {
-        status |= (dc << STATUS_DC)
+        if (carries & 0x10) != 0 {
+            status |= byte(1 << STATUS_DC)
+        } else {
+            status &= ^byte(1 << STATUS_DC)
+        }
+        if (carries & 0x100) != 0 {
+            status |= byte(1 << STATUS_C)
+        } else {
+            status &= ^byte(1 << STATUS_C)
+        }
     }
 
-    if (addsubInstr || rotInstr) {
-        status |= (c << STATUS_C)
+    if (rotInstr) {
+        if carries == 1 {
+            status |= byte(1 << STATUS_C)
+        } else {
+            status &= ^byte(1 << STATUS_C)
+        }
     }
 
     if (zeroAffectInstr) {
-        status |= (z << STATUS_Z)
+        if newVal == 0 {
+            status |= byte(1 << STATUS_Z)
+        } else {
+            status &= ^byte(1 << STATUS_Z)
+        }
     }
 
     setRegValue(state, REG_STATUS, status)
 
-    if skipInstr && z == 1 {
+    if skipInstr && newVal == 0 {
         state.pc += 2
     } else {
         state.pc++
@@ -216,15 +224,22 @@ func executeInstruction3(instr uint16, state *emuState) error {
 
     if arithInstr {
         if carries & 0x100 != 0 {
-            status |= (1 << STATUS_C)
+            status |= byte(1 << STATUS_C)
+        } else {
+            status &= ^byte(1 << STATUS_C)
         }
+
         if carries & 0x10 != 0 {
-            status |= (1 << STATUS_DC)
+            status |= byte(1 << STATUS_DC)
+        } else {
+            status &= ^byte(1 << STATUS_DC)
         }
     }
     if zeroInstr {
         if newVal == 0 {
-            status |= (1 << STATUS_Z)
+            status |= byte(1 << STATUS_Z)
+        } else {
+            status &= ^byte(1 << STATUS_Z)
         }
         setRegValue(state, REG_STATUS, status)
     }
