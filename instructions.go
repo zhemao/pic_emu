@@ -165,12 +165,13 @@ func executeInstruction1(instr uint16, state *emuState) error {
 }
 
 func executeInstruction2(instr uint16, state *emuState) error {
-    call := ((instr >> 11) & 0x1) == 1
+    call := ((instr >> 11) & 0x1) == 0
     addr := instr & 0x7ff
 
     if (call) {
         state.stack.push(state.pc + 1)
     }
+
     state.pc = addr
 
     return nil
@@ -194,6 +195,10 @@ func executeInstruction3(instr uint16, state *emuState) error {
         newVal = k
     } else if opcode & 0xc == 0x4 {
         // RETLW
+        if state.stack.empty() {
+            errmsg := fmt.Sprintf("program exited with code %d", k)
+            return errors.New(errmsg)
+        }
         state.accum = byte(k)
         newpc, err := state.stack.pop()
         if err != nil {

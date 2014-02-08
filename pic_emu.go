@@ -69,6 +69,7 @@ func printRegister(regName string, state *emuState) error {
     switch regName {
         case "pc" : value = int16(state.pc)
         case "w"  : value = int16(state.accum)
+        case "tos": value = int16(state.stack.tos)
         default : {
             regAddr, err := strconv.ParseUint(regName, 16, 8)
             if err != nil {

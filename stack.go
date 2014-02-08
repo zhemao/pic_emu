@@ -17,7 +17,7 @@ func newStack(size int) *callStack {
 }
 
 func (stack *callStack) push(instr uint16) error {
-    if stack.tos == stack.capacity - 1 {
+    if stack.full() {
         return errors.New("stack is full")
     }
 
@@ -27,7 +27,7 @@ func (stack *callStack) push(instr uint16) error {
 }
 
 func (stack *callStack) pop() (uint16, error) {
-    if stack.tos == -1 {
+    if stack.empty() {
         return 0, errors.New("stack is empty")
     }
 
@@ -38,4 +38,12 @@ func (stack *callStack) pop() (uint16, error) {
 
 func (stack *callStack) clear() {
     stack.tos = -1
+}
+
+func (stack *callStack) empty() bool {
+    return stack.tos == -1
+}
+
+func (stack *callStack) full() bool {
+    return stack.tos == stack.capacity - 1
 }
