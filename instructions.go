@@ -196,6 +196,7 @@ func executeInstruction3(instr uint16, state *emuState) error {
     } else if opcode & 0xc == 0x4 {
         // RETLW
         if state.stack.empty() {
+            state.running = false
             errmsg := fmt.Sprintf("program exited with code %d", k)
             return errors.New(errmsg)
         }
