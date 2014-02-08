@@ -9,6 +9,7 @@ type emuState struct {
     bank uint8
     stack *callStack
     running bool
+    verbose bool
 }
 
 func (state *emuState) atBreakpoint() bool {

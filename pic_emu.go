@@ -44,6 +44,9 @@ func stepForward(arg string, state *emuState) error {
     if !state.running {
         return errors.New("program isn't running\n")
     }
+    if state.verbose {
+        fmt.Printf("instruction %d\n", state.pc)
+    }
     return executeInstruction(state.code_rom[state.pc], state)
 }
 
@@ -84,6 +87,11 @@ func printRegister(regName string, state *emuState) error {
     return nil
 }
 
+func toggleVerbose(arg string, state *emuState) error {
+    state.verbose = !state.verbose
+    return nil
+}
+
 func main() {
     if len(os.Args) < 2 {
         fmt.Println("Usage: pic_emu code.hex")
@@ -114,6 +122,7 @@ func main() {
     state.bank = 0
     state.running = false
     state.stack = newStack(STACK_SIZE)
+    state.verbose = false
 
     commands := map[string]command {
         "r" : startRunning,
@@ -121,6 +130,7 @@ func main() {
         "b" : setBreakpoint,
         "n" : stepForward,
         "p" : printRegister,
+        "v" : toggleVerbose,
     }
 
     line, err := linenoise.Line("pic> ")
