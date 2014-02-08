@@ -32,7 +32,7 @@ func BytesToWords(bytes []byte) []uint16 {
 type command func(string, *emuState) error
 
 func setBreakpoint(arg string, state *emuState) error {
-    addr, err := strconv.ParseUint(arg, 16, 16)
+    addr, err := strconv.ParseUint(arg, 10, 16)
     if err != nil {
         return err
     }
