@@ -115,7 +115,7 @@ func executeInstruction0(instr uint16, state *emuState) error {
     }
 
     if (zeroAffectInstr) {
-        if newVal == 0 {
+        if (newVal & 0xff) == 0 {
             status |= byte(1 << STATUS_Z)
         } else {
             status &= ^byte(1 << STATUS_Z)
@@ -124,7 +124,7 @@ func executeInstruction0(instr uint16, state *emuState) error {
 
     setRegValue(state, REG_STATUS, status)
 
-    if skipInstr && newVal == 0 {
+    if skipInstr && (newVal & 0xff) == 0 {
         state.pc += 2
     } else {
         state.pc++
