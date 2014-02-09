@@ -174,3 +174,25 @@ func flipBit(args []string, state *emuState) error {
 
     return nil
 }
+
+const INT_VECTOR = 4
+
+func triggerInterrupt(args []string, state *emuState) error {
+    intcon := getRegValue(state, REG_INTCON)
+
+    // check that interrupts are enabled
+    if intcon & (1 << INTCON_GIE) == 0 {
+        return errors.New("interrupts not enabled")
+    }
+
+    // clear GIE
+    intcon &= ^byte(1 << INTCON_GIE)
+
+    // save PC and change it to interrupt vector
+    state.stack.push(state.pc)
+    state.pc = INT_VECTOR
+
+    setRegValue(state, REG_INTCON, intcon)
+
+    return nil
+}

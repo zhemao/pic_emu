@@ -4,10 +4,11 @@ title "add test"
 #include <p16f74.inc>
 
   org 00h
+  bsf INTCON, GIE
   goto main
 
   org 04h
-  goto errout
+  goto isrService
 
   org 05h
 
@@ -85,4 +86,10 @@ testfunc
 errout
   ;; exit with error
   retlw 1
+
+isrService
+  btfss 22h, 0
+  goto isrService
+  retfie
+
   end

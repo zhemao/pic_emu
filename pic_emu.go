@@ -70,6 +70,7 @@ func main() {
         "set" : setBit,
         "clear" : clearBit,
         "flip" : flipBit,
+        "int" : triggerInterrupt,
     }
 
     line, err := linenoise.Line("pic> ")
