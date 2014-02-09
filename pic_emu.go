@@ -6,9 +6,7 @@ import (
     "bufio"
     "os"
     "fmt"
-    "errors"
     "strings"
-    "strconv"
     "encoding/binary"
 )
 
@@ -27,69 +25,6 @@ func BytesToWords(bytes []byte) []uint16 {
     }
 
     return words
-}
-
-type command func(string, *emuState) error
-
-func setBreakpoint(arg string, state *emuState) error {
-    addr, err := strconv.ParseUint(arg, 10, 16)
-    if err != nil {
-        return err
-    }
-    state.breakpoints = append(state.breakpoints, uint16(addr))
-    return nil
-}
-
-func stepForward(arg string, state *emuState) error {
-    if !state.running {
-        return errors.New("program isn't running\n")
-    }
-    if state.verbose {
-        fmt.Printf("instruction %d\n", state.pc)
-    }
-    return executeInstruction(state.code_rom[state.pc], state)
-}
-
-func startRunning(arg string, state *emuState) error {
-    state.reset()
-    state.running = true
-    return continueRunning(arg, state)
-}
-
-func continueRunning(arg string, state *emuState) error {
-    for !state.atBreakpoint() {
-        err := stepForward("", state)
-        if err != nil {
-            return err
-        }
-    }
-    return nil
-}
-
-func printRegister(regName string, state *emuState) error {
-    var value int16
-
-    switch regName {
-        case "pc" : value = int16(state.pc)
-        case "w"  : value = int16(state.accum)
-        case "tos": value = int16(state.stack.tos)
-        default : {
-            regAddr, err := strconv.ParseUint(regName, 16, 8)
-            if err != nil {
-                return errors.New(
-                    fmt.Sprintf("Unrecognized register %s\n", regName))
-            }
-            value = int16(getRegValue(state, uint16(regAddr)))
-        }
-    }
-
-    fmt.Println(value)
-    return nil
-}
-
-func toggleVerbose(arg string, state *emuState) error {
-    state.verbose = !state.verbose
-    return nil
 }
 
 func main() {
@@ -150,12 +85,16 @@ func main() {
             line, err = linenoise.Line("pic> ")
             continue
         }
-        arg := ""
+
+        var args []string
+
         if len(parts) > 1 {
-            arg = parts[1]
+            args = parts[1:]
+        } else {
+            args = make([]string, 0)
         }
 
-        err = operation(arg, state)
+        err = operation(args, state)
         if err != nil {
             if state.running {
                 fmt.Printf("Error on instruction 0x%x\n", state.pc)
