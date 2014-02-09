@@ -63,6 +63,7 @@ func main() {
         "r" : startRunning,
         "c" : continueRunning,
         "b" : setBreakpoint,
+        "d" : unsetBreakpoint,
         "n" : stepForward,
         "p" : printRegister,
         "v" : toggleVerbose,

@@ -42,6 +42,28 @@ func setBreakpoint(args []string, state *emuState) error {
     return nil
 }
 
+func unsetBreakpoint(args []string, state *emuState) error {
+    if len(args) == 0 {
+        return errors.New("not enough arguments")
+    }
+    addr, err := parseInteger(args[0], 14)
+    if err != nil {
+        return err
+    }
+
+    for i, bp := range state.breakpoints {
+        if uint16(addr) == bp {
+            // to "remove" a breakpoint, replace it with the length of
+            // the code ROM. Since that address will never be reached,
+            // the breakpoint effectively does not exist
+            state.breakpoints[i] = uint16(len(state.code_rom))
+            return nil
+        }
+    }
+
+    return errors.New("could not find breakpoint")
+}
+
 func stepForward(args []string, state *emuState) error {
     if !state.running {
         return errors.New("program isn't running\n")
