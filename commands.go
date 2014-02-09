@@ -4,7 +4,29 @@ import (
     "errors"
     "fmt"
     "strconv"
+    "strings"
 )
+
+func parseInteger(numStr string, nbits int) (int16, error) {
+    var num int16
+    var err error
+    if strings.HasSuffix(numStr, "h") {
+        var hexnum uint64
+        hexStr := numStr[0 : len(numStr) - 1]
+        hexnum, err = strconv.ParseUint(hexStr, 16, nbits)
+        num = int16(hexnum)
+    } else {
+        var decnum int64
+        decnum, err = strconv.ParseInt(numStr, 10, nbits)
+        num = int16(decnum)
+    }
+
+    if err != nil {
+        return 0, err
+    }
+
+    return num, nil
+}
 
 type command func([]string, *emuState) error
 
@@ -12,7 +34,7 @@ func setBreakpoint(args []string, state *emuState) error {
     if len(args) == 0 {
         return errors.New("not enough arguments")
     }
-    addr, err := strconv.ParseUint(args[0], 10, 16)
+    addr, err := parseInteger(args[0], 14)
     if err != nil {
         return err
     }
@@ -58,12 +80,12 @@ func printRegister(args []string, state *emuState) error {
         case "w"  : value = int16(state.accum)
         case "tos": value = int16(state.stack.tos)
         default : {
-            regAddr, err := strconv.ParseUint(regName, 16, 8)
+            regAddr, err := parseInteger(regName, 9)
             if err != nil {
                 return errors.New(
                     fmt.Sprintf("Unrecognized register %s\n", regName))
             }
-            value = int16(getRegValue(state, uint16(regAddr)))
+            value = int16(state.data_ram[regAddr])
         }
     }
 
