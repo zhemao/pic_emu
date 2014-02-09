@@ -103,7 +103,6 @@ func main() {
             if state.running {
                 fmt.Printf("Error on instruction 0x%x\n", state.pc)
             }
-            state.running = false
             fmt.Println(err)
         }
 
