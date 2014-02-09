@@ -66,6 +66,10 @@ func main() {
         "n" : stepForward,
         "p" : printRegister,
         "v" : toggleVerbose,
+        "put" : putByte,
+        "set" : setBit,
+        "clear" : clearBit,
+        "flip" : flipBit,
     }
 
     line, err := linenoise.Line("pic> ")

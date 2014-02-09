@@ -97,3 +97,80 @@ func toggleVerbose(args []string, state *emuState) error {
     state.verbose = !state.verbose
     return nil
 }
+
+func putByte(args []string, state *emuState) error {
+    if len(args) < 2 {
+        return errors.New("not enough arguments")
+    }
+
+    addr, err := parseInteger(args[0], 9)
+    if err != nil {
+        return err
+    }
+
+    value, err := parseInteger(args[1], 8)
+    if err != nil {
+        return err
+    }
+
+    state.data_ram[addr] = byte(value)
+
+    return nil
+}
+
+func parseAddrAndBit(args []string) (uint16, uint8, error) {
+    addr, err := parseInteger(args[0], 9)
+    if err != nil {
+        return 0, 0, err
+    }
+
+    bit, err := parseInteger(args[1], 4)
+    if err != nil {
+        return 0, 0, err
+    }
+
+    return uint16(addr), uint8(bit), nil
+}
+
+func setBit(args []string, state *emuState) error {
+    if len(args) < 2 {
+        return errors.New("not enough arguments")
+    }
+
+    addr, bit, err := parseAddrAndBit(args)
+    if err != nil {
+        return err
+    }
+
+    state.data_ram[addr] |= byte(1 << bit)
+    return nil
+}
+
+func clearBit(args []string, state *emuState) error {
+    if len(args) < 2 {
+        return errors.New("not enough arguments")
+    }
+
+    addr, bit, err := parseAddrAndBit(args)
+    if err != nil {
+        return err
+    }
+
+    state.data_ram[addr] &= ^byte(1 << bit)
+    return nil
+}
+
+func flipBit(args []string, state *emuState) error {
+    if len(args) < 2 {
+        return errors.New("not enough arguments")
+    }
+
+    addr, bit, err := parseAddrAndBit(args)
+    if err != nil {
+        return err
+    }
+
+    state.data_ram[addr] ^= byte(1 << bit)
+
+    return nil
+}
