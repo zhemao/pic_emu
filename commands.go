@@ -59,13 +59,14 @@ func startRunning(args []string, state *emuState) error {
 }
 
 func continueRunning(args []string, state *emuState) error {
-    for !state.atBreakpoint() {
-        err := stepForward(nil, state)
-        if err != nil {
-            return err
-        }
+    // always take first step, otherwise we'd get stuck on a breakpoint
+    err := stepForward(nil, state)
+
+    for !state.atBreakpoint() && err == nil{
+        err = stepForward(nil, state)
     }
-    return nil
+
+    return err
 }
 
 func printRegister(args []string, state *emuState) error {
