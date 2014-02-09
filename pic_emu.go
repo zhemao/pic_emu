@@ -115,6 +115,7 @@ func main() {
             fmt.Println(err)
         }
 
+        linenoise.AddHistory(line)
         line, err = linenoise.Line("pic> ")
     }
 }
